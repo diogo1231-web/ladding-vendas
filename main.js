@@ -169,6 +169,89 @@ class AudioPlayer {
     }
 }
 
+// Legal Modal Manager
+class LegalModal {
+    constructor() {
+        this.modal = document.getElementById('legalModal');
+        this.openLink = document.getElementById('legalModalLink');
+        this.closeBtn = null;
+        this.overlay = null;
+        this.lastFocusedElement = null;
+
+        if (this.modal) {
+            this.closeBtn = this.modal.querySelector('.modal-legal-close');
+            this.overlay = this.modal.querySelector('.modal-legal-overlay');
+            this.init();
+        }
+    }
+
+    init() {
+        if (this.openLink) {
+            this.openLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.open();
+            });
+        }
+
+        if (this.closeBtn) {
+            this.closeBtn.addEventListener('click', () => this.close());
+        }
+
+        if (this.overlay) {
+            this.overlay.addEventListener('click', () => this.close());
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !this.modal.hasAttribute('hidden')) {
+                this.close();
+            }
+        });
+
+        this.modal.addEventListener('keydown', (e) => this.trapFocus(e));
+    }
+
+    open() {
+        this.lastFocusedElement = document.activeElement;
+        this.modal.removeAttribute('hidden');
+        document.body.classList.add('modal-open');
+
+        setTimeout(() => {
+            this.closeBtn.focus();
+        }, 100);
+    }
+
+    close() {
+        this.modal.setAttribute('hidden', '');
+        document.body.classList.remove('modal-open');
+
+        if (this.lastFocusedElement) {
+            this.lastFocusedElement.focus();
+        }
+    }
+
+    trapFocus(e) {
+        if (e.key !== 'Tab') return;
+
+        const focusableElements = this.modal.querySelectorAll(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+            if (document.activeElement === firstElement) {
+                e.preventDefault();
+                lastElement.focus();
+            }
+        } else {
+            if (document.activeElement === lastElement) {
+                e.preventDefault();
+                firstElement.focus();
+            }
+        }
+    }
+}
+
 // Initialize audio player when page loads
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize audio player if on audio page
@@ -176,10 +259,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const player = new AudioPlayer();
         player.init();
     }
-    
+
+    // Initialize legal modal if present
+    if (document.getElementById('legalModal')) {
+        new LegalModal();
+    }
+
     // Smooth scrolling for anchor links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
+            if (this.getAttribute('href') === '#') {
+                return;
+            }
             e.preventDefault();
             const target = document.querySelector(this.getAttribute('href'));
             if (target) {
@@ -190,7 +281,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-    
+
     // Add active class to current page nav link
     const currentPage = window.location.pathname.split('/').pop() || 'index.php';
     document.querySelectorAll('.nav-link').forEach(link => {
